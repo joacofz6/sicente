@@ -14,7 +14,41 @@
             font-weight: 100;
         }
 
+        @font-face {
+            font-family: "Ka1";
+            src: url("./assets/ka1.ttf") format("truetype");
+            font-display: swap;
+            font-weight: 100;
+        }
+
+        .listen-txt{
+            font-family: "ArcadeApp";
+            font-weight: 100;
+            color: #f105d4;
+            text-shadow: 1px 1px 0px #556e93;
+        }
+
+        .neon-glow {
+            text-shadow: 1px 1px 2px #f105d4;
+            animation: neon-flicker 1.5s infinite alternate;
+        }
+
+        @keyframes neon-flicker {
+
+            0%,
+            100% {
+                text-shadow: 1px 1px 2px #fb00ffcc;
+            }
+
+            50% {
+                text-shadow: 1px 1px 8px #fb00ff;
+            }
+
+
+        }
+
         :root {
+            --anim-time: 4.4s;
             --bg: #10151d;
             --panel: #1a2330;
             --panel-alt: #243244;
@@ -63,12 +97,13 @@
         }
 
         .top-bar {
-            display: flex;
+            display: inline-grid;
             align-items: center;
             justify-content: space-between;
             gap: 16px;
             margin-bottom: 20px;
             flex-wrap: wrap;
+            grid-template-columns: repeat(4, minmax(50px, 1fr));
         }
 
         .welcome-screen {
@@ -89,19 +124,33 @@
         .welcome-screen h1 {
             margin: 0 0 12px;
             font-size: 2rem;
+            font-weight: 100;
+            text-shadow: 2px 2px 2px #000000;
         }
 
         .welcome-copy {
-            max-width: 420px;
             margin: 0 auto 18px;
             color: rgba(237, 242, 255, 0.78);
             line-height: 1.5;
         }
 
         .start-button {
-            min-width: 160px;
-            font-size: 1.05rem;
+            /* border: 1px solid rgba(255, 255, 255, 0.16); */
+            border-radius: 8px;
+            background: #803581;
+            color: #270f27;
+            cursor: pointer;
+            font: inherit;
+            font-weight: 700;
+            padding: 11px 16px;
+            margin: 15px;
+            box-shadow: 2px 2px 3px 3px #000;
         }
+
+        .start-button:hover:not(:disabled) {
+            box-shadow: 2px 2px 3px 0px #000;
+        }
+
 
         .settings-panel {
             margin-bottom: 20px;
@@ -160,10 +209,6 @@
             text-align: left;
         }
 
-        .error-sound-toggle[aria-pressed="true"] {
-            border-color: var(--good);
-            color: var(--good);
-        }
 
         .error-sound-toggle:focus-visible {
             outline: 2px solid var(--accent);
@@ -176,13 +221,13 @@
         }
 
         .octave-range {
-            display: grid;
+            display: selector;
             grid-template-columns: repeat(2, minmax(0, 1fr));
             gap: 8px;
         }
 
         .octave-range label {
-            display: grid;
+            display: selector;
             gap: 6px;
             font-size: 0.82rem;
             font-weight: 400;
@@ -207,17 +252,21 @@
 
         .stat {
             background: var(--panel-alt);
-            padding: 10px 16px;
+            padding: 10px;
             border-radius: 10px;
             min-width: 120px;
+            max-height: 63px;
             text-align: center;
+            box-shadow: 0px 1px 0px 2px #000;
         }
 
         .stat-label {
             display: block;
             font-size: 12px;
             opacity: 0.75;
+            margin-top:0px;
             text-transform: uppercase;
+            text-shadow: 2px 2px 1px #000000;
             letter-spacing: 0.08em;
         }
 
@@ -229,7 +278,7 @@
         }
 
         .pause-button {
-            border: 1px solid rgba(255, 255, 255, 0.16);
+            /* border: 1px solid rgba(255, 255, 255, 0.16); */
             border-radius: 8px;
             background: var(--button);
             color: var(--text);
@@ -237,6 +286,8 @@
             font: inherit;
             font-weight: 700;
             padding: 11px 16px;
+            text-shadow: 2px 2px 0px #000;
+            /* box-shadow: 0px 1px 0px 2px #000; */
         }
 
         .pause-button:hover:not(:disabled) {
@@ -251,9 +302,10 @@
         .lives-image {
             display: block;
             width: 140px;
-            height: 39px;
-            margin: 4px auto 0;
+            height: 35px;
+            margin-top: 3px ;
             image-rendering: pixelated;
+            border-radius: 6px;
         }
 
         h1 {
@@ -267,7 +319,7 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            background: #111b27;
+            background: #090e14;
             border: 1px solid rgba(255, 255, 255, 0.08);
             border-radius: 12px;
             padding: 8px;
@@ -277,6 +329,7 @@
         .stave-stage {
             position: relative;
         }
+
         .coin-sprite-lane {
             position: absolute;
             z-index: 2;
@@ -287,7 +340,8 @@
             overflow: visible;
             pointer-events: none;
         }
-        .coin-sprite{
+
+        .coin-sprite {
             position: absolute;
             left: 50%;
             bottom: 0;
@@ -301,8 +355,25 @@
             animation: coin-rise-fade 2s ease-out forwards;
         }
 
+        .reward {
+            position: absolute;
+            left: 50%;
+            font-weight: 100;
+            color: #f105d4;
+            font-family: 'Ka1', "Courier New", monospace;;
+            bottom: 0;
+            width: auto;
+            height: 55px;
+            max-width: none;
+            object-fit: contain;
+            opacity: 0;
+            transform: translate(-50%, 35px);
+            filter: drop-shadow(0 2px 5px rgba(0, 0, 0, 0.7));
+            animation: coin-rise-fade 2s ease-out forwards;
+        }
+
         .win-sprite-lane {
-              position: absolute;
+            position: absolute;
             z-index: 2;
             top: 2px;
             right: 8px;
@@ -313,7 +384,7 @@
         }
 
         .win-sprite {
-             position: absolute;
+            position: absolute;
             top: 1px;
             left: 100%;
             width: auto;
@@ -322,8 +393,9 @@
             object-fit: contain;
             transform: translate(35.1px, 5.8px);
             filter: drop-shadow(0 2px 5px rgba(0, 0, 0, 0.7));
-            animation: win-sprite-flight-fade 4.4s linear forwards;
+            animation: win-sprite-flight-fade var(--anim-time) linear forwards;
         }
+
         .error-sprite-lane {
             position: absolute;
             z-index: 2;
@@ -345,7 +417,7 @@
             object-fit: contain;
             transform: translate(35.1px, 5.8px);
             filter: drop-shadow(0 2px 5px rgba(0, 0, 0, 0.7));
-            animation: win-sprite-flight 4.4s  linear forwards;
+            animation: win-sprite-flight-fade var(--anim-time) linear forwards;
         }
 
         @keyframes win-sprite-flight {
@@ -359,12 +431,15 @@
             0% {
                 opacity: 0;
             }
+
             14% {
                 opacity: 1;
             }
+
             78% {
                 opacity: 1;
             }
+
             100% {
                 left: 0;
                 transform: translateX(-100%);
@@ -376,9 +451,11 @@
             15% {
                 opacity: 1;
             }
+
             72% {
                 opacity: 1;
             }
+
             to {
                 opacity: 0;
                 transform: translate(-50%, -130px);
@@ -406,9 +483,10 @@
         .pause-image {
             display: block;
             width: auto;
-            max-width: 100%;
-            max-height: 220px;
+            /* max-width: 100%; */
+            max-height: 330px;
             object-fit: contain;
+            image-rendering: pixelated;
         }
 
         #output svg {
@@ -423,7 +501,12 @@
             text-align: center;
             margin-bottom: 18px;
             color: var(--text);
-            font-weight: 600;
+            font-weight: 200;
+            padding: 10px;
+            border: 1px solid;
+            text-shadow: 2px 2px 0px #000;
+            box-shadow: 0px 0px 2px 0px;
+            border-radius: 8px;
         }
 
         #answer-buttons {
@@ -443,12 +526,13 @@
             align-items: center;
             justify-content: space-between;
             margin-bottom: 12px;
+            font-family: "Ka1", "Courier New", monospace;
         }
 
         .leaderboard-heading h2 {
             margin: 0;
-            color: var(--accent);
-            font-family: var(--font-family);
+            color: #151616;
+            font-family: 'Ka1', "Courier New", monospace;
             font-size: 1.2rem;
             text-transform: uppercase;
         }
@@ -463,7 +547,7 @@
         .leaderboard-columns,
         .leaderboard-row {
             display: grid;
-            grid-template-columns: 3.2rem minmax(0, 1fr) auto;
+            grid-template-columns: 10% 50% 20% 20%;
             align-items: center;
             gap: 12px;
             padding: 9px 12px;
@@ -475,7 +559,7 @@
             font-size: 0.72rem;
         }
 
-        .leaderboard-columns span:last-child,
+        .leaderboard-columns span:nth-last-child(2),
         .leaderboard-score {
             text-align: right;
         }
@@ -570,9 +654,10 @@
             background: var(--button);
             color: var(--text);
             font-size: 1.5rem;
-            font-weight: 700;
+            font-weight: 200;
             padding: 16px 12px;
             cursor: pointer;
+            text-shadow: 2px 2px 1px #000000;
             transition: transform 0.15s ease, background 0.2s ease;
         }
 
@@ -613,23 +698,33 @@
 
 <body onkeydown="keyPressed(event)">
     <main class="game">
-        <section id="welcome-screen" class="welcome-screen" aria-labelledby="welcome-title">
-            <p class="welcome-kicker">LECTURA MUSICAL</p>
-            <h1 id="welcome-title">Juego para <br>Simón y Vicente</h1>
+        <section id="welcome-screen" class="welcome-screen">
+            <p class="welcome-kicker">para Simón y Vicente</p>
+            <h1 id="welcome-title">PRACTICA MUSICAL</h1>
             <!-- <p class="welcome-copy">Identifica las notas del pentagrama y consigue la mayor puntuación.</p> -->
-            <img src="./assets/cataruzo-portada.png" width="50%" alt="Cataruzo" style="display: block;margin:auto">
-            <button id="start" class="save-score start-button" type="button"
-                aria-controls="game-screen">Empezar</button>
+            <img src="./assets/cataruzo-portada.png" width="70%" alt="Cataruzo"
+                style="display: block;margin:auto;image-rendering: pixelated;">
+            <button id="start" class="neon-glow start-button" type="button">COMENZAR</button>
         </section>
 
-        
+        <section id="help-screen" class="welcome-screen" hidden>
+            <h1 id="help-title">Ayuda</h1>
+            <p class="welcome-copy">Identifica las notas que aparecen o escuchas. Cada nota correcta te dará
+                gato-monedas, mientras que cada error te restará vidas. ¡Los puntos se canjean! (hablar con papá y mamá)</p>
+                CTRL: suena un DO. SHIFT: el sonido de la pregunta.
+            <button id="back-to-game" class="neon-glow start-button" type="button">VOLVER AL
+                JUEGO</button>
+
+        </section>
+
+
 
         <section id="game-screen" hidden>
-            <div class="top-bar">
+            <div id="top-bar" class="top-bar">
                 <div class="stat">
                     <span class="stat-label">Puntuación</span>
                     <div style="display: flex; align-items: center; justify-content: center; gap: 4px;">
-                        <span id="score" class="stat-value">0</span>
+                        <span id="score" class="stat-value neon-glow">0</span>
                         <span><img src="./assets/cataruzo-coin.png" height="30" alt="Moneda"></span>
                     </div>
 
@@ -647,117 +742,108 @@
                     <span class="stat-label">Tiempo</span>
                     <span id="timer" class="stat-value"></span>
                 </div>
-                
+
             </div>
-            <div id="stave-title" style="display: block;">
-                <h1 style="display: inline;"
-                >Lee la nota</h1> 
-                <button id="pause-button" class="pause-button" type="button" aria-pressed="false"
-                    disabled style="display: inline;">Pausar</button></div>
-            
+            <div id="stave-title" style="display: flex;justify-content: space-between; width: 100%;padding: 0 20px;">
+                <button id="pause-button" class="pause-button" type="button" disabled>Pausar</button>
+                <button id="mute-button" class="pause-button" type="button">Silenciar</button>
+                <button id="help-button" class="pause-button" type="button">Ayuda</button>
+            </div>
+
             <div id="stave-stage" class="stave-stage">
-                <div id="output" aria-live="polite"></div>
-                <div id="win-sprite-lane" class="win-sprite-lane" aria-hidden="true"></div>
-                <div id="error-sprite-lane" class="error-sprite-lane" aria-hidden="true"></div>
-                <div id="coin-sprite-lane" class="coin-sprite-lane" aria-hidden="true"></div>
+                <div id="output"></div>
+                <div id="win-sprite-lane" class="win-sprite-lane"></div>
+                <div id="error-sprite-lane" class="error-sprite-lane"></div>
+                <div id="coin-sprite-lane" class="coin-sprite-lane"></div>
             </div>
             <div id="win-stage" class="win-stage" hidden>
-                <div><img src="./assets/celebration1.png" alt="" style="margin: auto;display: block;"></div>
+                <div><img id="celebration-img" src="./assets/celebration1.png" alt="" width="330"
+                        style="box-shadow: 0px 0px 1px 3px #000;margin: auto;display: block;image-rendering: pixelated;">
+                </div>
             </div>
             <div id="pause-screen" class="pause-screen" hidden>
-                <img class="pause-image" src="./assets/pause.png" alt="Juego en pausa" width="1024" height="576">
+                <img class="pause-image" src="./assets/pause.png" alt="Juego en pausa">
             </div>
             <div id="message">Elige la nota que ves en el pentagrama.</div>
             <div id="answer-buttons"></div>
 
             <section>
 
-                <details id="settings-panel" class="settings-panel">
-            <summary><span>Ajustes <img src="./assets/settings.png" height="35px" alt="Ajustes"></span></summary>
-            <form id="settings-form" class="settings-form">
-                <div class="settings-grid">
-                    <label class="setting-field" for="accidental-mode">
-                        Alteraciones
-                        <select id="accidental-mode" name="accidentals">
-                            <option value="natural">Solo notas naturales</option>
-                            <option value="sharps">Incluir sostenidos</option>
-                            <option value="flats">Incluir bemoles</option>
-                            <option value="mixed">Sostenidos y bemoles</option>
-                        </select>
-                    </label>
-                    <label class="setting-field" for="timer-duration">
-                        Tiempo por nota
-                        <select id="timer-duration" name="timerSeconds">
-                            <option value="5">5 segundos</option>
-                            <option value="10" selected>10 segundos</option>
-                            <option value="15">15 segundos</option>
-                            <option value="20">20 segundos</option>
-                            <option value="30">30 segundos</option>
-                        </select>
-                    </label>
-                    <fieldset class="setting-field octave-field">
-                        <legend>Rango base de octavas</legend>
-                        <div class="octave-range">
-                            <label for="min-octave">
-                                Mínima
-                                <select id="min-octave" name="minOctave">
-                                    <option value="2">2</option>
-                                    <option value="3">3</option>
-                                    <option value="4" selected>4</option>
-                                    <option value="5">5</option>
-                                    <option value="6">6</option>
+                <details id="settings-panel" class="settings-panel" style="margin-top: 15px;">
+                    <!-- <summary><span> <img src="./assets/settings.png" height="35px" alt="Ajustes"></span></summary> -->
+                    <summary><span> Opciones </span></summary>
+                    <form id="settings-form" class="settings-form">
+                        <div class="settings-grid">
+                            <label class="setting-field" for="accidental-mode">
+                                Alteraciones
+                                <select id="accidental-mode" name="accidentals">
+                                    <option value="natural">Solo notas naturales</option>
+                                    <option value="sharps">Incluir sostenidos</option>
+                                    <option value="flats">Incluir bemoles</option>
+                                    <option value="mixed">Sostenidos y bemoles</option>
+                                    <option value="listen">Escucha</option>
                                 </select>
                             </label>
-                            <label for="max-octave">
-                                Máxima
-                                <select id="max-octave" name="maxOctave">
-                                    <option value="2">2</option>
-                                    <option value="3">3</option>
-                                    <option value="4">4</option>
-                                    <option value="5" selected>5</option>
-                                    <option value="6">6</option>
+                            <label class="setting-field" for="timer-duration">
+                                Tiempo por nota
+                                <select id="timer-duration" name="timerSeconds">
+                                    <option value="5">5 segundos</option>
+                                    <option value="10" selected>10 segundos</option>
+                                    <option value="15">15 segundos</option>
+                                    <option value="20">20 segundos</option>
+                                    <option value="30">30 segundos</option>
                                 </select>
                             </label>
+                            <fieldset class="setting-field octave-field">
+                                <legend>Rango de octavas</legend>
+                                <div class="octave-range">
+                                    <select id="octave-range-selector" name="octave-range-selector">
+                                        <option value="1" selector>1</option>
+                                        <option value="2">2</option>
+                                    </select>
+                                </div>
+                            </fieldset>
+                            <label class="setting-field" for="clef-select">
+                                Clave
+                                <select id="clef-select" name="clef">
+                                    <option value="treble" selected>Sol</option>
+                                    <option value="bass">Fa</option>
+                                    <option value="alto">Do</option>
+                                </select>
+                            </label>
+                            <label class="setting-field" for="answer-count">
+                                Opciones de respuesta
+                                <select id="answer-count" name="answerCount">
+                                    <option value="4" selected>4 notas</option>
+                                    <option value="all">Todas las notas posibles</option>
+                                </select>
+                            </label>
+                            <button id="error-sound-toggle" class="error-sound-toggle" type="button">
+                                Sonido de error: Desactivado
+                            </button>
                         </div>
-                    </fieldset>
-                    <label class="setting-field" for="clef-select">
-                        Clave
-                        <select id="clef-select" name="clef">
-                            <option value="treble" selected>Sol</option>
-                            <option value="bass">Fa</option>
-                            <option value="alto">Do</option>
-                        </select>
-                    </label>
-                    <label class="setting-field" for="answer-count">
-                        Opciones de respuesta
-                        <select id="answer-count" name="answerCount">
-                            <option value="4" selected>4 notas</option>
-                            <option value="all">Todas las notas posibles</option>
-                        </select>
-                    </label>
-                    <button id="error-sound-toggle" class="error-sound-toggle" type="button" aria-pressed="false">
-                        Sonido de error: Desactivado
-                    </button>
-                </div>
-                <div class="settings-actions">
-                    <button class="save-score" type="submit">Aplicar ajustes</button>
-                    <p id="settings-status" class="settings-status" role="status" aria-live="polite"></p>
-                </div>
-            </form>
-        </details>
+                        <div class="settings-actions">
+                            <button class="save-score" type="submit">Aplicar ajustes</button>
+                            <p id="settings-status" class="settings-status"></p>
+                        </div>
+                    </form>
+                </details>
             </section>
 
-            <section class="leaderboard-panel" aria-labelledby="leaderboard-title">
-                <div class="leaderboard-heading">
-                    <h2 id="leaderboard-title">Mejores puntuaciones</h2>
-                    <span>TOP 10</span>
+            <section class="leaderboard-panel">
+                <div style="display: block;margin:auto;">
+                    <div class="leaderboard-heading">
+                        <h2 id="leaderboard-title" style="display: inline;" class="neon-glow">Mejores puntuaciones</h2>
+                    </div>
                 </div>
-                <div class="leaderboard-columns" aria-hidden="true">
-                    <span style="width: 20%;">POS</span>
-                    <span style="width: 60%;">JUGADOR</span>
-                    <span style="width: 20%;">PUNTOS</span>
+
+                <div class="leaderboard-columns">
+                    <span>POS</span>
+                    <span>JUGADOR</span>
+                    <span>PUNTOS</span>
+                    <span>TIEMPO</span>
                 </div>
-                <ol id="leaderboard" class="leaderboard" aria-live="polite"></ol>
+                <ol id="leaderboard" class="leaderboard"></ol>
 
                 <form id="score-entry" class="score-entry" hidden>
                     <label for="player-name">¡NUEVO RÉCORD! ESCRIBE TU NOMBRE</label>
@@ -771,7 +857,7 @@
         </section>
     </main>
 
-    <script src="./js/app.js?v=21"></script>
+    <script src="./js/app.js"></script>
 </body>
 
 </html>
