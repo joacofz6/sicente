@@ -1,20 +1,23 @@
 const NOTE_NAMES = ["C", "D", "E", "F", "G", "A", "B"];
-const NOTE_NAMES_ES = { C: "Do", D: "Re", E: "Mi", F: "Fa", G: "Sol", A: "La", B: "Si" };
+const NOTE_NAMES_ES = { C: "DO", D: "RE", E: "MI", F: "FA", G: "SOL", A: "LA", B: "SI" };
 const NOTE_TONE_INDEX = { C: 0, D: 2, E: 4, F: 5, G: 7, A: 9, B: 11 };
+const NOTE_DURATIONS = ["w", "h", "q", "8", "16"];
 const noteToneBuffers = new Map();
+const END_GAME_SOUND = "./assets/tones/endgame.mp3";
+const ALL_POSIBLE_NOTES = ["C/2", "D/2", "E/2", "F/2", "G/2", "A/2", "B/2", "C/3", "D/3", "E/3", "F/3", "G/3", "A/3", "B/3", "C/4", "D/4", "E/4", "F/4", "G/4", "A/4", "B/4", "C/5", "D/5", "E/5", "F/5", "G/5", "A/5", "B/5", "C/6", "D/6", "E/6", "F/6", "G/6", "A/6", "B/6"]
+const CLEF_CENTRAL_NOTE = { treble: 20, alto: 14, bass: 8 };
 let noteAudioContext = null;
 let activeNoteSource = null;
-const SCALE_FACTOR = 1.8;
+const SCALE_FACTOR = 2;
+
 const WIN_SOUNDS = [
   "./assets/tones/win/win1.mp3",
-  "./assets/tones/win/win2.mp3",  
+  "./assets/tones/win/win2.mp3",
 ];
-const FART_SOUNDS = [
-  "./assets/tones/farts/fart1.mp3",
-  "./assets/tones/farts/fart2.mp3",
-  "./assets/tones/farts/fart3.mp3",
-  "./assets/tones/farts/fart4.mp3",
-  "./assets/tones/farts/fart5.mp3",
+const ERROR_SOUNDS = [
+  "./assets/error-sounds/error1.mp3",
+  "./assets/error-sounds/error2.mp3",
+  "./assets/error-sounds/error3.mp3",
 ];
 const LIFE_IMAGE_SOURCES = [
   "./assets/0-lives.png",
@@ -31,27 +34,31 @@ const WIN_SPRITE_SOURCES = [
   "./assets/win-sprites/win1.png",
   "./assets/win-sprites/win2.png",
   "./assets/win-sprites/win3.png",
+  "./assets/win-sprites/win4.png",
+  "./assets/win-sprites/win5.png",
+  "./assets/win-sprites/win6.png",
+  "./assets/win-sprites/win7.png",
 ];
 const ERROR_SPRITE_SOURCES = [
   "./assets/error-sprites/error1.png",
   "./assets/error-sprites/error2.png",
   "./assets/error-sprites/error3.png",
 ];
-const HIGH_SCORE_KEY = "musicNoteReadingHighScore";
+
 const LEADERBOARD_KEY = "musicNoteReadingLeaderboard";
 const SETTINGS_KEY = "musicNoteReadingSettings";
 const MAX_SCORES = 10;
 const DEFAULT_SETTINGS = {
   accidentals: "natural",
   timerSeconds: 15,
-  minOctave: 4,
-  maxOctave: 4,
+  octaveRange: 1,
   clef: "treble",
-  answerCount: 4,
-  errorSound:false,
+  answerCount: "all",
+  errorSound: false,
+  muted: false,
 };
-const OCTAVE_OPTIONS = [2, 3, 4, 5, 6];
-const CLEF_OCTAVE_OFFSETS = { treble: 0, alto: -1, bass: -2 };
+const OCTAVE_OPTIONS = [1, 2, 3, 4];
+const CLEF_OCTAVE_OFFSETS = { treble: 4, alto: 4, bass: 3 };
 const SHARP_NOTES = ["C", "D", "F", "G", "A"];
 const FLAT_NOTES = ["D", "E", "G", "A", "B"];
 
@@ -70,6 +77,7 @@ const timerEl = document.getElementById("timer");
 const messageEl = document.getElementById("message");
 const answerButtonsEl = document.getElementById("answer-buttons");
 const leaderboardEl = document.getElementById("leaderboard");
+const leaderboardTitleEl = document.getElementById("leaderboard-title");
 const scoreEntryForm = document.getElementById("score-entry");
 const playerNameInput = document.getElementById("player-name");
 const settingsForm = document.getElementById("settings-form");
@@ -78,22 +86,33 @@ const gameScreenEl = document.getElementById("game-screen");
 const settingsPanelEl = document.getElementById("settings-panel");
 const startButton = document.getElementById("start");
 const pauseButton = document.getElementById("pause-button");
+const muteButton = document.getElementById("mute-button");
+const pauseScreen = document.getElementById("pause-screen");
 const accidentalModeSelect = document.getElementById("accidental-mode");
 const timerDurationSelect = document.getElementById("timer-duration");
-const minOctaveSelect = document.getElementById("min-octave");
-const maxOctaveSelect = document.getElementById("max-octave");
+
+const octaveRangeSelect = document.getElementById("octave-range-selector");
 const clefSelect = document.getElementById("clef-select");
 const answerCountSelect = document.getElementById("answer-count");
 const errorSoundToggleButton = document.getElementById("error-sound-toggle");
 const settingsStatusEl = document.getElementById("settings-status");
+const helpButton = document.getElementById("help-button");
+const helpScreenEl = document.getElementById("help-screen");
+const backToGameButton = document.getElementById("back-to-game");
+const topBarEl = document.getElementById("top-bar");
 
-function loadLeaderboard() {
+function leaderboardStorageKey(accidentalMode) {
+  return `${LEADERBOARD_KEY}:${accidentalMode}`;
+}
+
+function loadLeaderboard(accidentalMode) {
   try {
-    const savedScores = JSON.parse(localStorage.getItem(LEADERBOARD_KEY) || "[]");
+    const savedScores = JSON.parse(localStorage.getItem(leaderboardStorageKey(accidentalMode)) || "[]");
     if (!Array.isArray(savedScores)) return [];
 
     return savedScores
       .filter((entry) => entry && typeof entry.name === "string" && Number.isFinite(entry.score))
+      .sort((a, b) => a.roundTime - b.roundTime)
       .sort((a, b) => b.score - a.score)
       .slice(0, MAX_SCORES);
   } catch {
@@ -101,12 +120,16 @@ function loadLeaderboard() {
   }
 }
 
+function calculateBest(scores) {
+  return scores.reduce((best, entry) => Math.max(best, entry.score), 0);
+}
+
 function loadSettings() {
   try {
     const savedSettings = JSON.parse(localStorage.getItem(SETTINGS_KEY) || "{}");
     const settings = { ...DEFAULT_SETTINGS, ...savedSettings };
-    
-    if (!["natural", "sharps", "flats", "mixed"].includes(settings.accidentals)) {
+
+    if (!["natural", "sharps", "flats", "mixed", "listen"].includes(settings.accidentals)) {
       settings.accidentals = DEFAULT_SETTINGS.accidentals;
     }
     if (![5, 10, 15, 20, 30].includes(Number(settings.timerSeconds))) {
@@ -114,18 +137,12 @@ function loadSettings() {
     } else {
       settings.timerSeconds = Number(settings.timerSeconds);
     }
-    if (!OCTAVE_OPTIONS.includes(Number(settings.minOctave))) {
-      settings.minOctave = DEFAULT_SETTINGS.minOctave;
+    if (!OCTAVE_OPTIONS.includes(Number(settings.octaveRange))) {
+      settings.octaveRange = DEFAULT_SETTINGS.octaveRange;
     }
-    if (!OCTAVE_OPTIONS.includes(Number(settings.maxOctave))) {
-      settings.maxOctave = DEFAULT_SETTINGS.maxOctave;
-    }
-    settings.minOctave = Number(settings.minOctave);
-    settings.maxOctave = Number(settings.maxOctave);
-    if (settings.minOctave > settings.maxOctave) {
-      settings.minOctave = DEFAULT_SETTINGS.minOctave;
-      settings.maxOctave = DEFAULT_SETTINGS.maxOctave;
-    }
+
+    settings.octaveRange = Number(settings.octaveRange);
+
     if (!["treble", "bass", "alto"].includes(settings.clef)) {
       settings.clef = DEFAULT_SETTINGS.clef;
     }
@@ -142,17 +159,22 @@ function loadSettings() {
         : DEFAULT_SETTINGS.answerCount;
     }
 
+
+
     return settings;
   } catch {
     return { ...DEFAULT_SETTINGS };
   }
 }
 
+const initialSettings = loadSettings();
+const initialLeaderboard = loadLeaderboard(initialSettings.accidentals);
+
 const state = {
   score: 0,
-  bestScore: Number(localStorage.getItem(HIGH_SCORE_KEY)) || 0,
-  leaderboard: loadLeaderboard(),
-  settings: loadSettings(),
+  bestScore: calculateBest(initialLeaderboard),
+  leaderboard: initialLeaderboard,
+  settings: initialSettings,
   pitchDeck: [],
   lastPitchKey: null,
   lives: 3,
@@ -168,6 +190,7 @@ const state = {
   isGameOver: false,
 };
 
+updateMuteToggle();
 function randomInt(min, max) {
   return Math.floor(Math.random() * (max - min + 1)) + min;
 }
@@ -199,72 +222,111 @@ function formatNoteName(label) {
 }
 
 async function playQuestionTone(question) {
-  const accidentalOffset = question.accidental === "#" ? 1 : question.accidental === "b" ? -1 : 0;
-  const toneIndex = (NOTE_TONE_INDEX[question.letter] + accidentalOffset + 12) % 12;
-  const AudioContextClass = window.AudioContext || window.webkitAudioContext;
-  if (!AudioContextClass) return;
+  if (state.settings.accidentals === 'listen' || !state.settings.muted) {
+    const accidentalOffset = question.accidental === "#" ? 1 : question.accidental === "b" ? -1 : 0;
+    const toneIndex = (NOTE_TONE_INDEX[question.letter] + accidentalOffset + 12) % 12;
+    const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+    if (!AudioContextClass) return;
 
-  try {
-    if (!noteAudioContext) noteAudioContext = new AudioContextClass();
-    if (noteAudioContext.state === "suspended") await noteAudioContext.resume();
+    try {
+      if (!noteAudioContext) noteAudioContext = new AudioContextClass();
+      if (noteAudioContext.state === "suspended") await noteAudioContext.resume();
 
-    let buffer = noteToneBuffers.get(toneIndex);
-    if (!buffer) {
-      const response = await fetch(`./assets/tones/${toneIndex}.ogg`);
-      if (!response.ok) throw new Error(`Tone ${toneIndex} could not be loaded.`);
-      buffer = await noteAudioContext.decodeAudioData(await response.arrayBuffer());
-      noteToneBuffers.set(toneIndex, buffer);
+      let buffer = noteToneBuffers.get(toneIndex);
+      if (!buffer) {
+        const response = await fetch(`./assets/tones/${toneIndex}.ogg`);
+        if (!response.ok) throw new Error(`Tone ${toneIndex} could not be loaded.`);
+        buffer = await noteAudioContext.decodeAudioData(await response.arrayBuffer());
+        noteToneBuffers.set(toneIndex, buffer);
+      }
+
+      if (activeNoteSource) activeNoteSource.stop();
+      const source = noteAudioContext.createBufferSource();
+      source.buffer = buffer;
+      source.playbackRate.value = 2 ** (question.octave - 4);
+      source.connect(noteAudioContext.destination);
+      source.onended = () => {
+        if (activeNoteSource === source) activeNoteSource = null;
+      };
+      activeNoteSource = source;
+      source.start();
+    } catch (error) {
+      console.warn("No se pudo reproducir el sonido de la nota.", error);
     }
-
-    if (activeNoteSource) activeNoteSource.stop();
-    const source = noteAudioContext.createBufferSource();
-    source.buffer = buffer;
-    source.playbackRate.value = 2 ** (question.octave - 4);
-    source.connect(noteAudioContext.destination);
-    source.onended = () => {
-      if (activeNoteSource === source) activeNoteSource = null;
-    };
-    activeNoteSource = source;
-    source.start();
-  } catch (error) {
-    console.warn("No se pudo reproducir el sonido de la nota.", error);
   }
 }
 
-async function playErrorTone() {
-  const fartFile = FART_SOUNDS[randomInt(0, FART_SOUNDS.length - 1)];
-  
-  const AudioContextClass = window.AudioContext || window.webkitAudioContext;
-  if (!AudioContextClass) return;
+async function playErrorTone(index) {
+  if (!state.settings.muted) {
+    const errorFile = ERROR_SOUNDS[index];
 
-  try {
-    if (!noteAudioContext) noteAudioContext = new AudioContextClass();
-    if (noteAudioContext.state === "suspended") await noteAudioContext.resume();
+    const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+    if (!AudioContextClass) return;
 
-    let buffer =null;
-    const response = await fetch(fartFile);
-    if (!response.ok) throw new Error(`Tone ${fartFile} could not be loaded.`);
-    buffer = await noteAudioContext.decodeAudioData(await response.arrayBuffer());
-    
-    if (activeNoteSource) activeNoteSource.stop();
-    const source = noteAudioContext.createBufferSource();
-    source.buffer = buffer;
-    // source.playbackRate.value = 2 ** (question.octave - 4);
-    source.connect(noteAudioContext.destination);
-    source.onended = () => {
-      if (activeNoteSource === source) activeNoteSource = null;
-    };
-    activeNoteSource = source;
-    source.start();
-  } catch (error) {
-    console.warn("No se pudo reproducir el sonido de la nota.", error);
+    try {
+      if (!noteAudioContext) noteAudioContext = new AudioContextClass();
+      if (noteAudioContext.state === "suspended") await noteAudioContext.resume();
+
+      let buffer = null;
+      const response = await fetch(errorFile);
+      if (!response.ok) throw new Error(`Tone ${errorFile} could not be loaded.`);
+      buffer = await noteAudioContext.decodeAudioData(await response.arrayBuffer());
+
+      if (activeNoteSource) activeNoteSource.stop();
+      const source = noteAudioContext.createBufferSource();
+      source.buffer = buffer;
+      // source.playbackRate.value = 2 ** (question.octave - 4);
+      source.connect(noteAudioContext.destination);
+      source.onended = () => {
+        if (activeNoteSource === source) activeNoteSource = null;
+      };
+      activeNoteSource = source;
+      source.start();
+    } catch (error) {
+      console.warn("No se pudo reproducir el sonido de la nota.", error);
+    }
   }
 }
+
 
 async function playWinTone() {
-  // const winFile = WIN_SOUNDS[randomInt(0, WIN_SOUNDS.length - 1)];
-  const winFile = WIN_SOUNDS[0];
-  
+  if (!state.settings.muted) {
+    // const winFile = WIN_SOUNDS[randomInt(0, WIN_SOUNDS.length - 1)];
+    const winFile = WIN_SOUNDS[0];
+
+    const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+    if (!AudioContextClass) return;
+
+    try {
+      if (!noteAudioContext) noteAudioContext = new AudioContextClass();
+      if (noteAudioContext.state === "suspended") await noteAudioContext.resume();
+
+      let buffer = null;
+      const response = await fetch(winFile);
+      if (!response.ok) throw new Error(`Tone ${toneIndex} could not be loaded.`);
+      buffer = await noteAudioContext.decodeAudioData(await response.arrayBuffer());
+
+      if (activeNoteSource) activeNoteSource.stop();
+      const source = noteAudioContext.createBufferSource();
+      source.buffer = buffer;
+      // source.playbackRate.value = 2 ** (question.octave - 4);
+      source.connect(noteAudioContext.destination);
+      source.onended = () => {
+        if (activeNoteSource === source) activeNoteSource = null;
+      };
+      activeNoteSource = source;
+      source.start();
+    } catch (error) {
+      console.warn("No se pudo reproducir el sonido de la nota.", error);
+    }
+  }
+}
+
+async function playCNote() {
+
+
+  const toneIndex = 0;
+
   const AudioContextClass = window.AudioContext || window.webkitAudioContext;
   if (!AudioContextClass) return;
 
@@ -272,11 +334,11 @@ async function playWinTone() {
     if (!noteAudioContext) noteAudioContext = new AudioContextClass();
     if (noteAudioContext.state === "suspended") await noteAudioContext.resume();
 
-    let buffer =null;
-    const response = await fetch(winFile);
-    if (!response.ok) throw new Error(`Tone ${toneIndex} could not be loaded.`);
+    let buffer = null;
+    const response = await fetch(`./assets/tones/${toneIndex}.ogg`);
+    if (!response.ok) throw new Error(`Tone ${errorFile} could not be loaded.`);
     buffer = await noteAudioContext.decodeAudioData(await response.arrayBuffer());
-    
+
     if (activeNoteSource) activeNoteSource.stop();
     const source = noteAudioContext.createBufferSource();
     source.buffer = buffer;
@@ -290,15 +352,19 @@ async function playWinTone() {
   } catch (error) {
     console.warn("No se pudo reproducir el sonido de la nota.", error);
   }
+
 }
 
-function buildQuestion() {
+function buildQuestionOLD() {
   if (state.pitchDeck.length === 0) {
     const noteLabels = getNoteLabels(state.settings);
     const pitches = [];
-    const octaveOffset = CLEF_OCTAVE_OFFSETS[state.settings.clef];
-    const minOctave = Math.max(OCTAVE_OPTIONS[0], state.settings.minOctave + octaveOffset);
-    const maxOctave = Math.max(minOctave, Math.min(OCTAVE_OPTIONS[OCTAVE_OPTIONS.length - 1], state.settings.maxOctave + octaveOffset));
+    var octaveOffset = CLEF_OCTAVE_OFFSETS[state.settings.clef];
+    const octaveRange = state.settings.octaveRange;
+    //sube octava cuando embocas 10 seguidas
+
+    const minOctave = octaveOffset - (octaveRange - 1);
+    const maxOctave = octaveOffset + (octaveRange - 1);
 
     for (let octave = minOctave; octave <= maxOctave; octave += 1) {
       noteLabels.forEach((label) => {
@@ -344,38 +410,142 @@ function buildQuestion() {
   };
 }
 
-function drawStaff(question) {
-  output.innerHTML = "";
+function buildQuestion() {
+  if (state.pitchDeck.length === 0) {
+    const noteLabels = getNoteLabels(state.settings);
+    const pitches = [];
+    const centralNote = CLEF_CENTRAL_NOTE[state.settings.clef];
+    const minLimit = centralNote - (state.settings.octaveRange) * 7;
+    const maxLimit = centralNote + (state.settings.octaveRange) * 7;
+    const lowestNote = ALL_POSIBLE_NOTES[minLimit];
+    const highestNote = ALL_POSIBLE_NOTES[maxLimit];
 
-  const renderer = new Vex.Flow.Renderer(output, Vex.Flow.Renderer.Backends.SVG);
-  const rendererWidth = 420;
-  const rendererHeight = 150;
-  const staveWidth = 380;
-  renderer.resize(rendererWidth * SCALE_FACTOR, rendererHeight * SCALE_FACTOR);
-  const context = renderer.getContext();
-
-  context.setFillStyle("#f5f5f5");
-  context.setStrokeStyle("#f5f5f5");
-  context.scale(SCALE_FACTOR, SCALE_FACTOR);
-
-  const staveX = (rendererWidth - staveWidth) / 2;
-  const stave = new Vex.Flow.Stave(staveX, 40, staveWidth).addClef(question.clef);
-  stave.setContext(context).draw();
-
-  const note = new Vex.Flow.StaveNote({
-    clef: question.clef,
-    keys: [question.key],
-    duration: "q",
-  });
-  if (question.accidental) {
-    note.addModifier(new Vex.Flow.Accidental(question.accidental));
+    for (let i = minLimit; i <= maxLimit; i++) {
+      // const label = getNoteLabels(state.settings)[0]
+      //  const letter = label[0];
+      const letter = ALL_POSIBLE_NOTES[i][0];
+      // const accidental = label.slice(1);
+      const accidental = '';
+      const label = (letter + accidental).toUpperCase();
+      const octave = eval(ALL_POSIBLE_NOTES[i].toLowerCase().slice(2))
+      pitches.push({
+        letter,
+        accidental,
+        octave,
+        label,
+        key: ALL_POSIBLE_NOTES[i].toLowerCase(),
+      });
+    }
+    state.pitchDeck = shuffle(pitches);
+    const lastIndex = state.pitchDeck.length - 1;
+    if (state.pitchDeck[lastIndex].key === state.lastPitchKey) {
+      [state.pitchDeck[0], state.pitchDeck[lastIndex]] = [state.pitchDeck[lastIndex], state.pitchDeck[0]];
+    }
   }
 
-  const voice = new Vex.Flow.Voice({ num_beats: 1, beat_value: 4 });
-  voice.addTickable(note);
 
-  new Vex.Flow.Formatter().joinVoices([voice]).format([voice], 280);
-  voice.draw(context, stave);
+
+
+  const pitch = state.pitchDeck.pop();
+  const { letter, accidental, octave, key, label } = pitch;
+  state.lastPitchKey = key;
+  const noteLabels = getNoteLabels(state.settings);
+  const distractors = shuffle(noteLabels.filter((value) => value !== label));
+
+  const answerCount = state.settings.answerCount === "all"
+    ? noteLabels.length
+    : Math.min(Number(state.settings.answerCount), noteLabels.length);
+  const possibleAnswers = [label, ...distractors.slice(0, answerCount - 1)]
+    .sort((a, b) => noteLabels.indexOf(a) - noteLabels.indexOf(b));
+
+  return {
+    letter,
+    accidental,
+    octave,
+    key,
+    correct: label,
+    clef: state.settings.clef,
+    options: possibleAnswers,
+  };
+}
+
+function drawStaff(question, showHelp) {
+  output.innerHTML = "";
+  if (state.settings.accidentals === "listen") {
+    if (showHelp) {
+
+    } else {
+      output.innerHTML = '<div class="listen-txt">Usando la oreja.. ¿qué nota es?<br>Ctrl:Sonido DO - Shift:Repite la nota</div>';
+    }
+  } else {
+    const renderer = new Vex.Flow.Renderer(output, Vex.Flow.Renderer.Backends.SVG);
+    const rendererWidth = 500;
+    const rendererHeight = 300;
+    const staveWidth = 450;
+    renderer.resize(rendererWidth, rendererHeight);
+    const context = renderer.getContext();
+
+    context.setFillStyle("#f5f5f5");
+    context.setStrokeStyle("#f5f5f5");
+    context.scale(SCALE_FACTOR, SCALE_FACTOR);
+
+    const staveX = (rendererWidth - staveWidth) / 2;
+    const stave = new Vex.Flow.Stave(0, 20, staveWidth).addClef(question.clef);
+    stave.setContext(context).draw();
+
+
+    if (showHelp) {
+      var octaveOffset = CLEF_OCTAVE_OFFSETS[question.clef];
+      const voice = new Vex.Flow.Voice({ num_beats: 4, beat_value: 4 });
+      voice.setStrict(false);
+      const lyrics = NOTE_NAMES;
+      for (let i = 0; i < NOTE_NAMES.length; i++) {
+        const note = new Vex.Flow.StaveNote({
+          clef: question.clef,
+          keys: [NOTE_NAMES[i].toLowerCase() + "/" + octaveOffset],
+          duration: 'q',
+        });
+        note.autoStem();
+        voice.addTickable(note);
+
+        const lyricAnnotation = new Vex.Flow.Annotation(NOTE_NAMES_ES[lyrics[i]])
+          .setFont("ArcadeApp", 6, "normal")
+          .setVerticalJustification(Vex.Flow.Annotation.VerticalJustify.TOP);
+        note.addModifier(lyricAnnotation, 0)
+      }
+
+
+
+
+      new Vex.Flow.Formatter().joinVoices([voice]).format([voice], 150);
+      voice.draw(context, stave);
+
+
+    } else {
+      const note = new Vex.Flow.StaveNote({
+        clef: question.clef,
+        keys: [question.key],
+        duration: NOTE_DURATIONS[randomInt(0, NOTE_DURATIONS.length - 1)],
+      });
+      if (question.accidental) {
+        note.addModifier(new Vex.Flow.Accidental(question.accidental));
+      }
+
+      note.autoStem();
+
+      const voice = new Vex.Flow.Voice({ num_beats: 4, beat_value: 4 });
+      voice.setStrict(false);
+      voice.addTickable(note);
+
+      new Vex.Flow.Formatter().joinVoices([voice]).format([voice], 280);
+      voice.draw(context, stave);
+    }
+  }
+
+
+
+
+
 }
 
 function renderAnswerButtons(options) {
@@ -396,7 +566,7 @@ function animateWinCoin() {
   sprite.src = COIN_SPRITE_SOURCES[randomInt(0, COIN_SPRITE_SOURCES.length - 1)];
   sprite.alt = "";
   sprite.height = 55;
-  sprite.setAttribute("aria-hidden", "true");
+
   sprite.addEventListener("animationend", () => sprite.remove(), { once: true });
   coinSpriteLaneEl.appendChild(sprite);
 }
@@ -406,17 +576,18 @@ function animateWinSprite() {
   sprite.src = WIN_SPRITE_SOURCES[randomInt(0, WIN_SPRITE_SOURCES.length - 1)];
   sprite.alt = "";
   sprite.height = 55;
-  sprite.setAttribute("aria-hidden", "true");
+  sprite.style.imageRendering = "pixelated";
+  sprite.className = "win-sprite";
   sprite.addEventListener("animationend", () => sprite.remove(), { once: true });
   winSpriteLaneEl.appendChild(sprite);
 }
-
+var idx = 0;
 function animateErrorSprite() {
   const sprite = document.createElement("img");
   sprite.className = "error-sprite";
-  sprite.src = ERROR_SPRITE_SOURCES[randomInt(0, ERROR_SPRITE_SOURCES.length - 1)];
+  // const idx = randomInt(0, ERROR_SPRITE_SOURCES.length - 1);
+  sprite.src = ERROR_SPRITE_SOURCES[idx];
   sprite.alt = "";
-  sprite.setAttribute("aria-hidden", "true");
   sprite.addEventListener("animationend", () => sprite.remove(), { once: true });
   errorSpriteLaneEl.appendChild(sprite);
 }
@@ -432,8 +603,7 @@ function updateHUD() {
 function syncSettingsForm() {
   accidentalModeSelect.value = state.settings.accidentals;
   timerDurationSelect.value = state.settings.timerSeconds;
-  minOctaveSelect.value = state.settings.minOctave;
-  maxOctaveSelect.value = state.settings.maxOctave;
+  octaveRangeSelect.value = state.settings.octaveRange;
   clefSelect.value = state.settings.clef;
   syncAnswerCountOptions(state.settings.answerCount);
   state.settings.answerCount = answerCountSelect.value === "all"
@@ -444,7 +614,6 @@ function syncSettingsForm() {
 
 function updateErrorSoundToggle() {
   const enabled = state.settings.errorSound;
-  errorSoundToggleButton.setAttribute("aria-pressed", String(enabled));
   errorSoundToggleButton.textContent = `Sonido de error: ${enabled ? "Activado" : "Desactivado"}`;
 }
 
@@ -487,6 +656,14 @@ errorSoundToggleButton.addEventListener("click", () => {
 
 function renderLeaderboard() {
   leaderboardEl.innerHTML = "";
+  const modeLabels = {
+    natural: "Naturales",
+    sharps: "Con sostenidos",
+    flats: "Con bemoles",
+    mixed: "Sostenidos y bemoles",
+    listen: "Escucha",
+  };
+  leaderboardTitleEl.textContent = `Mejores puntuaciones: ${modeLabels[state.settings.accidentals] || state.settings.accidentals}`;
 
   if (state.leaderboard.length === 0) {
     const emptyRow = document.createElement("li");
@@ -512,7 +689,11 @@ function renderLeaderboard() {
     score.className = "leaderboard-score";
     score.textContent = entry.score;
 
-    row.append(rank, name, score);
+    const roundTime = document.createElement("span");
+    roundTime.className = "leaderboard-round-time";
+    roundTime.textContent = (entry.roundTime / 1000).toFixed(1) + "s";
+
+    row.append(rank, name, score, roundTime);
     leaderboardEl.appendChild(row);
   });
 }
@@ -550,7 +731,6 @@ function startTimer() {
 
 function updatePauseButton() {
   pauseButton.textContent = state.isPaused ? "Reanudar" : "Pausar";
-  pauseButton.setAttribute("aria-pressed", String(state.isPaused));
   pauseButton.disabled = !state.hasStarted || state.isGameOver;
 }
 
@@ -563,12 +743,16 @@ function togglePause() {
     staveTitleEl.hidden = false;
     pauseScreenEl.hidden = true;
     answerButtonsEl.hidden = false;
-    setMessage("¿Qué nota es?", true);
+    setMessage("¿Qué nota es esta?", true);
     updatePauseButton();
     startTimer();
     return;
   }
+  pause()
+}
 
+function pause() {
+  if (!state.hasStarted || state.isGameOver || state.isLocked) return;
   state.remainingTimeMs = Math.max(0, state.timerEndTime - Date.now());
   stopTimer();
   state.isPaused = true;
@@ -579,6 +763,34 @@ function togglePause() {
   setMessage("Juego en pausa", true);
   updatePauseButton();
 }
+function unPause() {
+  state.isPaused = false;
+  staveStageEl.hidden = false;
+  staveTitleEl.hidden = false;
+  pauseScreenEl.hidden = true;
+  answerButtonsEl.hidden = false;
+  setMessage("¿Qué nota es esta?", true);
+  updatePauseButton();
+  startTimer();
+  return;
+}
+
+function toggleMute() {
+  if (state.settings.muted === null) {
+    state.settings.muted = true;
+  } else {
+    state.settings.muted = !state.settings.muted;
+
+  }
+  localStorage.setItem(SETTINGS_KEY, JSON.stringify(state.settings));
+  updateMuteToggle();
+}
+
+function updateMuteToggle() {
+  const enabled = state.settings.muted;
+  muteButton.textContent = enabled ? "Activar sonido" : "Silenciar";
+  muteButton.style.backgroundColor = enabled ? "#3d2355" : "#2f3d51";
+}
 
 function setMessage(text, isGood = true) {
   messageEl.innerText = text;
@@ -586,6 +798,10 @@ function setMessage(text, isGood = true) {
 }
 
 function nextRound() {
+  if (state.lives == 3) {
+    state.startTimeStamp = Date.now();
+    idx = 0;
+  }
   staveStageEl.hidden = false;
   staveTitleEl.hidden = false;
   winStageEl.hidden = true;
@@ -600,7 +816,18 @@ function nextRound() {
   staveTitleEl.hidden = false;
   pauseScreenEl.hidden = true;
   answerButtonsEl.hidden = false;
-  state.currentQuestion = buildQuestion();
+  if (state.settings.accidentals === 'natural') {
+    state.currentQuestion = buildQuestion();
+  } else {
+    state.currentQuestion = buildQuestionOLD();
+  }
+
+  if (state.correctStreak == 3 || state.correctStreak == 6 || state.correctStreak == 10 || state.correctStreak == 15  ) {
+    state.score = state.score+state.correctStreak;
+    showReward();
+  }
+  
+
   drawStaff(state.currentQuestion);
   playQuestionTone(state.currentQuestion);
   renderAnswerButtons(state.currentQuestion.options);
@@ -608,6 +835,16 @@ function nextRound() {
   startTimer();
   state.isLocked = false;
   setMessage("¿Qué nota es esta?", true);
+}
+
+function showReward() {
+  
+  updateHUD();
+  const sprite = document.createElement("div");
+  sprite.innerHTML="Racha +"+state.correctStreak +"!"
+  sprite.className = "reward";
+  sprite.addEventListener("animationend", () => sprite.remove(), { once: true });
+  winSpriteLaneEl.appendChild(sprite);
 }
 
 function scheduleTransition(callback) {
@@ -620,6 +857,7 @@ function scheduleTransition(callback) {
 
 function finishGame() {
   stopTimer();
+
   state.isLocked = true;
   state.isPaused = false;
   state.isGameOver = true;
@@ -635,7 +873,7 @@ function finishGame() {
   if (!scoreEntryForm.hidden) {
     playerNameInput.value = "";
     playerNameInput.focus();
-    
+
   }
   document.getElementById("restart-game").addEventListener("click", () => {
     state.score = 0;
@@ -645,9 +883,16 @@ function finishGame() {
     nextRound();
   });
   setMessage(`¡Fin del juego! Puntuación final: ${state.score}`, false);
+
+  document.getElementById("celebration-img").src = "./assets/celebration" + randomInt(1, 3) + ".png";
   winStageEl.hidden = false;
   staveStageEl.hidden = true;
   staveTitleEl.hidden = true;
+  idx = 0;
+  const elem = document.getElementsByClassName('error-sprite');
+  while (elem[0]) {
+    elem[0].parentNode.removeChild(elem[0]);
+  }
 }
 
 function showAnswerUntilContinue(message) {
@@ -657,8 +902,9 @@ function showAnswerUntilContinue(message) {
 
   const continueButton = document.createElement("button");
   continueButton.type = "button";
-  continueButton.className = "note-btn reset-btn";
+  continueButton.className = "pause-button";
   continueButton.textContent = "Continuar";
+  continueButton.style.gridColumn = "1 / -1";
   continueButton.addEventListener("click", () => {
     continuePress();
   });
@@ -680,10 +926,11 @@ scoreEntryForm.addEventListener("submit", (event) => {
     return;
   }
 
-  state.leaderboard = [...state.leaderboard, { name, score: state.score }]
+  state.leaderboard = [...state.leaderboard, { name, score: state.score, roundTime: state.roundTime }]
+    .sort((a, b) => a.roundTime - b.roundTime)
     .sort((a, b) => b.score - a.score)
     .slice(0, MAX_SCORES);
-  localStorage.setItem(LEADERBOARD_KEY, JSON.stringify(state.leaderboard));
+  localStorage.setItem(leaderboardStorageKey(state.settings.accidentals), JSON.stringify(state.leaderboard));
   renderLeaderboard();
   scoreEntryForm.hidden = true;
   setMessage(`${name} entró en la tabla de mejores puntuaciones.`, true);
@@ -692,24 +939,26 @@ scoreEntryForm.addEventListener("submit", (event) => {
 settingsForm.addEventListener("submit", (event) => {
   event.preventDefault();
 
-  const minOctave = Number(minOctaveSelect.value);
-  const maxOctave = Number(maxOctaveSelect.value);
-  if (minOctave > maxOctave) {
-    settingsStatusEl.textContent = "La octava mínima no puede superar la máxima.";
-    settingsStatusEl.classList.add("settings-error");
-    return;
-  }
+
+  const octaveRange = Number(octaveRangeSelect.value);
+  const previousAccidentalMode = state.settings.accidentals;
+
 
   state.settings = {
     accidentals: accidentalModeSelect.value,
     timerSeconds: Number(timerDurationSelect.value),
-    minOctave,
-    maxOctave,
+    octaveRange: octaveRange,
     clef: clefSelect.value,
     answerCount: answerCountSelect.value === "all" ? "all" : Number(answerCountSelect.value),
     errorSound: state.settings.errorSound,
+    muted: state.settings.muted,
   };
   localStorage.setItem(SETTINGS_KEY, JSON.stringify(state.settings));
+  if (state.settings.accidentals !== previousAccidentalMode) {
+    state.leaderboard = loadLeaderboard(state.settings.accidentals);
+    state.bestScore = calculateBest(state.leaderboard);
+    renderLeaderboard();
+  }
 
   stopTimer();
   if (state.transitionTimer) {
@@ -730,14 +979,26 @@ settingsForm.addEventListener("submit", (event) => {
 });
 
 pauseButton.addEventListener("click", togglePause);
+pauseScreen.addEventListener("click", togglePause);
+muteButton.addEventListener("click", toggleMute);
+messageEl.addEventListener("click", unPause);
+startButton.addEventListener("click", startGame);
 
-startButton.addEventListener("click", () => {
+function startGame() {
   state.hasStarted = true;
   welcomeScreenEl.hidden = true;
   gameScreenEl.hidden = false;
   settingsPanelEl.open = false;
   nextRound();
-});
+}
+
+helpButton.addEventListener("click", () => {
+  showHelpScreen();
+})
+backToGameButton.addEventListener("click", () => {
+  hideHelpScreen();
+})
+
 
 function handleAnswer(selected) {
   if (state.isLocked || state.isPaused) return;
@@ -752,7 +1013,7 @@ function handleAnswer(selected) {
     state.score += 1;
     if (state.score > state.bestScore) {
       state.bestScore = state.score;
-      localStorage.setItem(HIGH_SCORE_KEY, state.bestScore);
+
     }
     playWinTone();
     updateHUD();
@@ -762,10 +1023,23 @@ function handleAnswer(selected) {
     state.lives -= 1;
     updateHUD();
     showAnswerUntilContinue(`La respuesta era \n ${formatNoteName(state.currentQuestion.correct)}.`);
+    const elem = document.getElementsByClassName('win-sprite');
+    while (elem[0]) {
+      elem[0].parentNode.removeChild(elem[0]);
+    }
     animateErrorSprite();
-    if (state.settings.errorSound) playErrorTone();
+
+    if (state.settings.errorSound) playErrorTone(idx);
+    idx++;
+    if (state.lives == 0) {
+      state.endTimeStamp = Date.now();
+      state.roundTime = (state.endTimeStamp - state.startTimeStamp);
+    }
     return;
   }
+
+
+
 
   scheduleTransition(nextRound);
 }
@@ -784,16 +1058,74 @@ function keyPressed(event) {
   if (event.key === "Escape") {
     togglePause();
   }
-  if (event.key === "Control") {
-    playQuestionTone(state.currentQuestion);
-  }
-  if (event.key === " ") {
-    event.preventDefault();
-    if (state.isLocked) {
-      continuePress();
+  if (event.key === "Enter") {
+    if (state.hasStarted === false) {
+      startGame();
+    } else {
+      if (state.isGameOver && scoreEntryForm.hidden) {
+        state.score = 0;
+        state.lives = 3;
+        scoreEntryForm.hidden = true;
+        updateHUD();
+        nextRound();
+      }
+    }
 
+  }
+  if (event.key === "Control") {
+    if (state.hasStarted && !state.isLocked && !state.isPaused) {
+      playCNote();
+    }
+
+  }
+  if (event.key === "Shift") {
+    if (state.hasStarted && !state.isLocked && !state.isPaused) {
+      playQuestionTone(state.currentQuestion);
     }
   }
+
+  if (event.key === " ") {
+
+    if (state.isLocked && !state.isGameOver) {
+      event.preventDefault();
+      continuePress();
+    } else if (playerNameInput.checkVisibility()) {
+
+    } else {
+      event.preventDefault();
+    }
+  }
+  if (event.key >= "1" && event.key <= "7") {
+    event.preventDefault();
+    document.getElementById("answer-buttons")?.children[Number(event.key) - 1]?.click();
+  }
+}
+
+window.addEventListener('blur', function () {
+  pause();
+});
+
+function showHelpScreen() {
+  helpScreenEl.hidden = false;
+  messageEl.hidden = true;
+  answerButtonsEl.hidden = true;
+  topBarEl.hidden = true;
+  pauseButton.disabled = true;
+  helpButton.disabled = true;
+  settingsPanelEl.hidden = true;
+  stopTimer();
+  drawStaff(state.currentQuestion, true);
+}
+function hideHelpScreen() {
+  helpScreenEl.hidden = true;
+  messageEl.hidden = false;
+  answerButtonsEl.hidden = false;
+  topBarEl.hidden = false;
+  pauseButton.disabled = false;
+  helpButton.disabled = false;
+  settingsPanelEl.hidden = false;
+  startTimer();
+  drawStaff(state.currentQuestion);
 }
 
 syncSettingsForm();
