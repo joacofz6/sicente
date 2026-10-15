@@ -658,11 +658,11 @@ errorSoundToggleButton.addEventListener("click", () => {
 function renderLeaderboard() {
   leaderboardEl.innerHTML = "";
   const modeLabels = {
-    natural: "Naturales",
+    natural: "modo Naturales",
     sharps: "Con sostenidos",
     flats: "Con bemoles",
     mixed: "Sostenidos y bemoles",
-    listen: "Escucha",
+    listen: "modo Escucha",
   };
   leaderboardTitleEl.textContent = `Mejores puntuaciones: ${modeLabels[state.settings.accidentals] || state.settings.accidentals}`;
 
