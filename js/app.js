@@ -480,7 +480,7 @@ function drawStaff(question, showHelp) {
   } else {
     const renderer = new Vex.Flow.Renderer(output, Vex.Flow.Renderer.Backends.SVG);
     const rendererWidth = 500;
-    const rendererHeight = 300;
+    const rendererHeight = 200;
     const staveWidth = 450;
     renderer.resize(rendererWidth, rendererHeight);
     const context = renderer.getContext();
@@ -490,7 +490,7 @@ function drawStaff(question, showHelp) {
     context.scale(SCALE_FACTOR, SCALE_FACTOR);
 
     const staveX = (rendererWidth - staveWidth) / 2;
-    const stave = new Vex.Flow.Stave(0, 20, staveWidth).addClef(question.clef);
+    const stave = new Vex.Flow.Stave(0, 0, staveWidth).addClef(question.clef);
     stave.setContext(context).draw();
 
 
@@ -788,7 +788,7 @@ function toggleMute() {
 
 function updateMuteToggle() {
   const enabled = state.settings.muted;
-  muteButton.textContent = enabled ? "Activar sonido" : "Silenciar";
+  muteButton.textContent = enabled ? "Activar sonido" : "Shh!";
   muteButton.style.backgroundColor = enabled ? "#3d2355" : "#2f3d51";
 }
 

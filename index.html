@@ -483,10 +483,15 @@
         .pause-image {
             display: block;
             width: auto;
-            /* max-width: 100%; */
+            max-width: 100%;
             max-height: 330px;
             object-fit: contain;
             image-rendering: pixelated;
+        }
+
+        #win-stage img {
+            max-width: 100%;
+            height: auto;
         }
 
         #output svg {
@@ -672,8 +677,98 @@
         }
 
         @media (max-width: 600px) {
+            body {
+                align-items: flex-start;
+                padding: 8px 0;
+            }
+
             .game {
-                padding: 18px;
+                width: calc(100% - 16px);
+                padding: 12px;
+            }
+
+            .top-bar {
+                display: grid;
+                width: 100%;
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+                gap: 8px;
+            }
+
+            .stat {
+                min-width: 0;
+                max-height: none;
+                padding: 8px 4px;
+            }
+
+            .stat-value {
+                font-size: 1.2rem;
+            }
+
+            .lives-image {
+                width: min(140px, 100%);
+                height: auto;
+            }
+
+            #stave-title {
+                display: grid !important;
+                grid-template-columns: repeat(3, minmax(0, 1fr));
+                gap: 6px;
+                padding: 0 !important;
+            }
+
+            #stave-title .pause-button {
+                min-width: 0;
+                padding: 9px 4px;
+                font-size: 0.72rem;
+            }
+
+            #output {
+                width: 100%;
+                min-width: 0;
+            }
+
+            #output svg {
+                width: 100%;
+                max-width: 100%;
+                height: auto;
+            }
+
+            .pause-image {
+                max-height: 50vh;
+            }
+
+            #answer-buttons {
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+                gap: 8px;
+            }
+
+            #answer-buttons .note-btn {
+                min-width: 0;
+                padding: 10px 4px;
+                font-size: 0.88rem;
+                overflow-wrap: anywhere;
+            }
+
+            .leaderboard-columns,
+            .leaderboard-row {
+                grid-template-columns: 1.7rem minmax(0, 1fr) 3.5rem 3.5rem;
+                gap: 4px;
+                padding: 8px 4px;
+            }
+
+            .leaderboard-columns {
+                font-size: 0.55rem;
+            }
+
+            .leaderboard-row {
+                font-size: 0.68rem;
+            }
+
+            .leaderboard-name {
+                min-width: 0;
+                overflow: hidden;
+                text-overflow: ellipsis;
+                white-space: nowrap;
             }
 
             .welcome-screen {
@@ -688,9 +783,6 @@
                 grid-template-columns: minmax(0, 1fr);
             }
 
-            #answer-buttons {
-                grid-template-columns: repeat(2, minmax(120px, 1fr));
-            }
         }
     </style>
     <script src="./dependencies/node_modules/vexflow/build/cjs/vexflow-debug.js"></script>
@@ -857,7 +949,7 @@
         </section>
     </main>
 
-    <script src="./js/app.js"></script>
+    <script src="./js/app.js?v=22"></script>
 </body>
 
 </html>
