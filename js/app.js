@@ -475,7 +475,15 @@ function drawStaff(question, showHelp) {
     if (showHelp) {
 
     } else {
-      output.innerHTML = '<div class="listen-txt">Usando la oreja.. ¿qué nota es?<br><b>Ctrl</b>:Sonido DO<br><b>Shift</b>:Repite la nota</div>';
+      output.innerHTML = '<div class="listen-txt">Usando la oreja.. ¿qué nota es?<br><span id="playDo"><button>Ctrl</button>:DO de referencia</span><br><br><span id="repeatNote"><button>Shift</button>:Repite la nota</span></div>';
+      document.getElementById("playDo").addEventListener('click',null)
+      document.getElementById("playDo").addEventListener('click',function(){
+        playCNote();
+      })
+      document.getElementById("repeatNote").addEventListener('click',null)
+      document.getElementById("repeatNote").addEventListener('click',function(){
+        playQuestionTone(state.currentQuestion);
+      })
     }
   } else {
     const renderer = new Vex.Flow.Renderer(output, Vex.Flow.Renderer.Backends.SVG);
