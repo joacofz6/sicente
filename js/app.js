@@ -480,7 +480,7 @@ function drawStaff(question, showHelp) {
   } else {
     const renderer = new Vex.Flow.Renderer(output, Vex.Flow.Renderer.Backends.SVG);
     const rendererWidth = 500;
-    const rendererHeight = 200;
+    const rendererHeight = 240;
     const staveWidth = 200;
     renderer.resize(rendererWidth, rendererHeight);
     const context = renderer.getContext();
