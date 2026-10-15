@@ -54,7 +54,7 @@ const DEFAULT_SETTINGS = {
   octaveRange: 1,
   clef: "treble",
   answerCount: "all",
-  errorSound: false,
+  errorSound: true,
   muted: false,
 };
 const OCTAVE_OPTIONS = [1, 2, 3, 4];
@@ -475,13 +475,13 @@ function drawStaff(question, showHelp) {
     if (showHelp) {
 
     } else {
-      output.innerHTML = '<div class="listen-txt">Usando la oreja.. ¿qué nota es?<br>Ctrl:Sonido DO - Shift:Repite la nota</div>';
+      output.innerHTML = '<div class="listen-txt">Usando la oreja.. ¿qué nota es?<br><b>Ctrl</b>:Sonido DO<br><b>Shift</b>:Repite la nota</div>';
     }
   } else {
     const renderer = new Vex.Flow.Renderer(output, Vex.Flow.Renderer.Backends.SVG);
     const rendererWidth = 500;
     const rendererHeight = 200;
-    const staveWidth = 450;
+    const staveWidth = 200;
     renderer.resize(rendererWidth, rendererHeight);
     const context = renderer.getContext();
 
@@ -490,7 +490,8 @@ function drawStaff(question, showHelp) {
     context.scale(SCALE_FACTOR, SCALE_FACTOR);
 
     const staveX = (rendererWidth - staveWidth) / 2;
-    const stave = new Vex.Flow.Stave(0, 0, staveWidth).addClef(question.clef);
+    const stave = new Vex.Flow.Stave(20, 0, staveWidth).addClef(question.clef);
+    stave.setEndBarType(Vex.Flow.Barline.type.END);
     stave.setContext(context).draw();
 
 
@@ -825,6 +826,9 @@ function nextRound() {
   if (state.correctStreak == 3 || state.correctStreak == 6 || state.correctStreak == 10 || state.correctStreak == 15  ) {
     state.score = state.score+state.correctStreak;
     showReward();
+    if(state.correctStreak == 15){
+      state.correctStreak = 0;
+    }
   }
   
 
@@ -1009,7 +1013,7 @@ function handleAnswer(selected) {
   if (selected === state.currentQuestion.correct) {
     state.correctStreak += 1;
     animateWinCoin()
-    if (state.correctStreak % 3 === 0) animateWinSprite();
+    if (state.correctStreak % 4 === 0) animateWinSprite();
     state.score += 1;
     if (state.score > state.bestScore) {
       state.bestScore = state.score;
