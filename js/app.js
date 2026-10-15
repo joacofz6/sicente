@@ -1114,7 +1114,7 @@ function keyPressed(event) {
 }
 
 window.addEventListener('blur', function () {
-  pause();
+//  pause();
 });
 
 function showHelpScreen() {
